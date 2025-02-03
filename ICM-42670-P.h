@@ -3,6 +3,8 @@
 
 #include "stm32wbxx_hal.h"
 
+#define ICM42670_PACKET_SIZE				16
+#define ICM42670_BUFFER_SIZE				1024
 // I2C Address
 #define ICM42670_DEFAULT_ADDRESS    (0x69)//IF AD0 = VCC THEN 0X69 ELSE 0X68
 #define ICM42670_WHO_AM_I           (0x67)//
