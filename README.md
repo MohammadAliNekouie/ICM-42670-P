@@ -53,10 +53,10 @@ if(InitMPU(&imu, ICM42670_DEFAULT_ADDRESS, &hi2c1)!=HAL_OK)
 	LOG_RTT("MPU INIT FAILED\r\n");	
 }
 
+//Init FIFO
 while(ICM42670_Initilize_FIFO(&imu,1024)!=HAL_OK)
 {
 	LOG_RTT("FIFO INIT FAILED\r\n");
-	HAL_Delay(300);
 }	
 
 //Setup rate & scale
