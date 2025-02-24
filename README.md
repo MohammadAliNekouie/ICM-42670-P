@@ -81,3 +81,48 @@ if(ICM42670_Read_FIFO_Counter(&imu,&IMU_FIFO_LEN)==HAL_OK)
 HAL_Delay(15);
 }
 ```
+
+
+How to use(APEX MOTION PROCESSING FUNCTIONS):
+```C
+	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
+	//Pedometer Arguments:
+	//9-Enable Interrupt Generation------------------------   //0 = Disable ,1 = Enable
+	//8-pedometer Sensivity Mode(1)----------------------  |  //0 = Normal(default) ,1=Slow Walk
+	//7-pedometer High Energy threshold(1:0)-----------  | |  //from 87.89mg to 155.27mg(def=1)
+	//6-pedometer SB timer threshold(4:2)------------  | | |  //from 50 to 225 sample(def=4)
+	//5-pedometer step detection threshold(7:5)----  | | | |  //from 0 to 7 step(def=2)
+	//4-pedometer step counter threshold(3:0)----  | | | | |  //from 0 to 15 step(def=5)
+	//3-Pedometer amplitude threshold(7:4)-----  | | | | | |  //from 30mg to 90mg(def=8)
+	//2-Low Energy amplitude threshold(7:4)--  | | | | | | |  //from 30mg to 105mg(def=10)
+	//1-IMU sensor definition-------------   | | | | | | | |
+	//////////////////////////////////    |  | | | | | | | |  //////////////////////////////////
+	//ICM42670_APEX_INITIALIZE_PEDOMETER(&imu,10,8,5,2,4,1,0,0);//(&imu,10,8,5,1,4,2,0);
+	
+	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
+	//3-Enable Interrupt Generation-------   //0 = Disable ,1 = Enable
+	//2-smd_sensivity(2:0)--------------  |  //(316<<smd_sensivity[2:0])-1
+	//1-IMU sensor definition-------    | |
+	////////////////////////////    |   | |    ///////////////////////////////////////////////////	
+	//ICM42670_APEX_INITIALIZE_SMD(&imu,1,1);
+	
+	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
+	//3-Enable Interrupt Generation---------------------      //0 = Disable ,1 = Enable		
+	//2-TITL_WAIT_TIME---------------------------       |			//0 =0sec, 1 =2sec, 2 =4sec, 3=6sec
+	//1-IMU sensor definition---------           |      |
+	///////////////////////////////   |          |      |     /////////////////////////////////////	
+	//ICM42670_APEX_INITIALIZE_TITL(&imu,TILT_WAIT_0SEC,1);
+	
+	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
+	//Wake On Motion Arguments:
+	//8-Enable Interrupt Generation----------------------------  //0 = Disable ,1-7 = Enable each X,Y,Z WOM interrupt(combined)
+	//7-WOM_INT_DUR(4:3)-------------------------------------  |  //from 1 to 4 threshold event to trigger
+	//6-WOM_INT_MODE(1)------------------------------------  | |  //0=OR all, 1=AND all
+	//5-WOM_MODE(1)--------------------------------------  | | |  //0=Diffrential , 1=Absolute
+	//4-ACCE_WOM_X_TH(7:0)----------------------------   | | | |  //1g/256 x value
+	//3-ACCE_WOM_X_TH(7:0)-------------------------   |  | | | |  //1g/256 x value
+	//2-ACCE_WOM_X_TH(7:0)---------------------    |  |  | | | |  //1g/256 x value
+	//1-IMU sensor definition---------------   |   |  |  | | | | 
+	//////////////////////////////////      |  |   |  |  | | | |   //////////////////////////////////
+	ICM42670_APEX_INITIALIZE_WAKEONMOTION(&imu,99,99, 5, 1,0,1,4);
+```
