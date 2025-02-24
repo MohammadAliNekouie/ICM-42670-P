@@ -392,8 +392,8 @@ uint8_t ICM42670_Initilize_FIFO(ICM42670 *sensor,uint16_t FIFO_LEVEL_THERESHOLD)
 			return HAL_ERROR;
 		}		
 		
-		//Enable FIFO threshold interrupt
-		temp_buffer[0] = 0x04;
+		//Disable FIFO threshold interrupt
+		temp_buffer[0] = 0x00;
 		if (!ICM42670_Write(sensor, ICM42670_INT_SOURCE0, temp_buffer, 1)) {
 			return HAL_ERROR;
 		}	
@@ -411,6 +411,309 @@ uint8_t ICM42670_Initilize_FIFO(ICM42670 *sensor,uint16_t FIFO_LEVEL_THERESHOLD)
 			return HAL_ERROR;
 		}		
 
+		return HAL_OK;
+}
+
+//Initilize Wake On Motion (WOM)
+//Wake on Motion detects when the change in accelerometer output exceeds a user-programmable threshold
+uint8_t ICM42670_APEX_INITIALIZE_WAKEONMOTION(
+    ICM42670 *sensor,
+		uint8_t ACCE_WOM_X_TH,
+    uint8_t ACCE_WOM_Y_TH,
+    uint8_t ACCE_WOM_Z_TH,
+    uint8_t WOM_MODE,
+    uint8_t WOM_INT_MODE,
+    uint8_t WOM_INT_DUR,
+		uint8_t	Enable_interrupt
+){
+		uint8_t temp_buffer[1];
+		ACCEL_ODR accel_odr = ACCEL_ODR_50HZ;
+		ODR_FREQ odr_freq=DMP_ODR_50Hz;
+	
+		//ODR value configured 50 Hz
+		temp_buffer[0] = accel_odr;
+		if (!ICM42670_Write(sensor, ICM42670_REG_ACCEL_CONFIG0, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}
+		
+		//Low power mode , Accel LP mode uses WU oscillator clock
+		temp_buffer[0] = 0x02;
+		if (!ICM42670_Write(sensor, ICM42670_REG_PWR_MGMT0, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}		
+		
+		//DMP ODR 50 Hz
+		temp_buffer[0] = odr_freq;
+		if (!ICM42670_Write(sensor, ICM42670_REG_APEX_CONFIG1, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}	
+		
+		//Wait 1 milisecond
+		HAL_Delay(1);
+		
+		//WOM ACCEL-X Threshold
+		if (ICM42670_BANK1_WRITE(sensor,ICM42670_REG_ACCEL_WOM_X_TH,ACCE_WOM_X_TH)==HAL_ERROR){
+			return HAL_ERROR;
+		}
+		
+		//WOM ACCEL-Y Threshold
+		if (ICM42670_BANK1_WRITE(sensor,ICM42670_REG_ACCEL_WOM_Y_TH,ACCE_WOM_Y_TH)==HAL_ERROR){
+			return HAL_ERROR;
+		}
+
+		//WOM ACCEL-Z Threshold
+		if (ICM42670_BANK1_WRITE(sensor,ICM42670_REG_ACCEL_WOM_Z_TH,ACCE_WOM_Z_TH)==HAL_ERROR){
+			return HAL_ERROR;
+		}
+
+		//Wait 1 milisecond
+		HAL_Delay(1);
+		
+		//Config Wake on Motion
+		temp_buffer[0] =((WOM_MODE&0x01)<<1) | ((WOM_INT_MODE&0x01)<<2) | ((WOM_INT_DUR&0x03)<<3);
+		if (!ICM42670_Write(sensor, ICM42670_REG_WOM_CONFIG, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}	
+		
+		//Enable Wake on Motion
+		temp_buffer[0] = 0x01 | ((WOM_MODE&0x01)<<1) | ((WOM_INT_MODE&0x01)<<2) | ((WOM_INT_DUR&0x03)<<3);
+		if (!ICM42670_Write(sensor, ICM42670_REG_WOM_CONFIG, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}			
+		
+		if(Enable_interrupt)//if it's not ZERO
+		{
+			//WOM interrupt INT1 enable (combined)
+			temp_buffer[0]=(Enable_interrupt&0x07);
+			if (!ICM42670_Write(sensor,ICM42670_REG_INT_SOURCE1,temp_buffer,1)){
+				return HAL_ERROR;
+			}	
+		}		
+		
+		return HAL_OK;
+}
+
+//Initillize Significant Motion Detection
+//Note: Significant Motion Detection (SMD) needs Pedometer enabled to run and so pedometer must be configured.
+uint8_t ICM42670_APEX_INITIALIZE_SMD(ICM42670 *sensor,uint8_t smd_sensivity,uint8_t Enable_interrupt)
+{
+		uint8_t temp_buffer[1];
+		ODR_FREQ odr_freq=DMP_ODR_50Hz;
+		//read last value of APEX_Config9
+		temp_buffer[0]=0;
+		if (ICM42670_BANK1_READ(sensor,ICM42670_REG_APEX_CONFIG9,temp_buffer)==HAL_ERROR){
+			return HAL_ERROR;
+		}	
+		
+		//SMD_Sensivity(3:1)
+		temp_buffer[0] = temp_buffer[0] & 0xF1;
+		temp_buffer[0] = temp_buffer[0] | ((smd_sensivity&0x07)<<1);
+		if (ICM42670_BANK1_WRITE(sensor,ICM42670_REG_APEX_CONFIG9,temp_buffer[0])==HAL_ERROR){
+			return HAL_ERROR;
+		}			
+		
+		//Clear DMP SRAM for APEX operation
+		temp_buffer[0] = 0x01;
+		if (!ICM42670_Write(sensor, ICM42670_REG_APEX_CONFIG0, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}		
+		
+		HAL_Delay(1);
+		
+		//Enable algorithm execution
+		temp_buffer[0] = 0x04;
+		if (!ICM42670_Write(sensor, ICM42670_REG_APEX_CONFIG0, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}	
+
+		HAL_Delay(50);	
+		
+		if(Enable_interrupt)//if it's not ZERO
+		{
+			//Step Detect & Overflow interrupt INT1
+			temp_buffer[0]=(0x01<<3);
+			if (!ICM42670_Write(sensor,ICM42670_REG_INT_SOURCE1,temp_buffer,1)){
+				return HAL_ERROR;
+			}	
+		}
+		
+		//Enable Pedometer Algorithm
+		temp_buffer[0] = (0x01<<3)|odr_freq;
+		if (!ICM42670_Write(sensor, ICM42670_REG_APEX_CONFIG1, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}		
+		
+		//Enable SMD Algorithm
+		temp_buffer[0] = (0x01<<3)|odr_freq|(0x01<<6);
+		if (!ICM42670_Write(sensor, ICM42670_REG_APEX_CONFIG1, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}				
+		
+		return HAL_OK;
+}
+
+//Initilize the TILT Detection
+//Tilt Detection asserts an interrupt if it calculates a change of >35°. There is a
+//single input parameter—Tilt Wait Time—which controls how long a valid “tilt” event must be held before an interrupt is initiated.
+uint8_t ICM42670_APEX_INITIALIZE_TITL(ICM42670 *sensor,uint8_t TITL_WAIT_TIME,uint8_t Enable_interrupt){
+		uint8_t temp_buffer[1];
+		ACCEL_ODR accel_odr = ACCEL_ODR_50HZ;
+		ODR_FREQ odr_freq=DMP_ODR_50Hz;
+	
+		//ODR value configured 50 Hz
+		temp_buffer[0] = accel_odr;
+		if (!ICM42670_Write(sensor, ICM42670_REG_ACCEL_CONFIG0, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}
+		
+		//Low power mode , Accel LP mode uses WU oscillator clock
+		temp_buffer[0] = 0x02;
+		if (!ICM42670_Write(sensor, ICM42670_REG_PWR_MGMT0, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}		
+		
+		//DMP ODR 50 Hz
+		temp_buffer[0] = odr_freq;
+		if (!ICM42670_Write(sensor, ICM42670_REG_APEX_CONFIG1, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}	
+		
+		//Wait 1 milisecond
+		HAL_Delay(1);
+		
+		//Clear DMP SRAM for APEX operation
+		temp_buffer[0] = 0x01;
+		if (!ICM42670_Write(sensor, ICM42670_REG_APEX_CONFIG0, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}		
+
+		//Wait 1 milisecond
+		HAL_Delay(1);
+
+		//Selection of tilt wait time
+		if (ICM42670_BANK1_WRITE(sensor,ICM42670_REG_APEX_CONFIG5,TITL_WAIT_TIME<<6)==HAL_ERROR){
+			return HAL_ERROR;
+		}		
+		
+		//Wait 1 milisecond
+		HAL_Delay(1);
+		
+		//Enable algorithm execution
+		temp_buffer[0] = 0x04;
+		if (!ICM42670_Write(sensor, ICM42670_REG_APEX_CONFIG0, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}		
+
+		//Wait 50 milisecond
+		HAL_Delay(50);
+		
+		if(Enable_interrupt)//if it's not ZERO
+		{		
+			//Tilt Detect interrupt INT1
+			if (ICM42670_BANK1_WRITE(sensor,ICM42670_REG_INT_SOURCE6,(0x01<<3))==HAL_ERROR){
+				return HAL_ERROR;
+			}		
+		}		
+
+		//Enable Tilt Algorithm
+		temp_buffer[0] = (0x01<<4)|odr_freq;
+		if (!ICM42670_Write(sensor, ICM42670_REG_APEX_CONFIG1, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}				
+		
+		return HAL_OK;		
+}
+
+
+//Initilize the Pedometer measures three quantities: it counts steps, measures cadence (step-rate), and classifies motion activity
+//as running/walking/“unknown” movement , The amplitude/energy/timing thresholds are knobs that tune the pedometer sensitivity higher or lower. 
+uint8_t ICM42670_APEX_INITIALIZE_PEDOMETER(
+    ICM42670 *sensor,
+    uint8_t LowEnergyAmpTh,
+    uint8_t PED_AMP_TH,
+    uint8_t PED_STEP_CNT_TH,
+    uint8_t PED_STEP_DET_TH,
+    uint8_t PED_SB_TIMER_TH,
+    uint8_t PED_HI_ENERGY_TH,
+    uint8_t PED_SENSIVITY,
+		uint8_t	Enable_interrupt
+){
+		uint8_t temp_buffer[1];
+		ACCEL_ODR accel_odr = ACCEL_ODR_50HZ;
+		ODR_FREQ odr_freq=DMP_ODR_50Hz;
+	
+		//ODR value configured 50 Hz
+		temp_buffer[0] = accel_odr;
+		if (!ICM42670_Write(sensor, ICM42670_REG_ACCEL_CONFIG0, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}
+		
+		//Low power mode , Accel LP mode uses WU oscillator clock
+		temp_buffer[0] = 0x02;
+		if (!ICM42670_Write(sensor, ICM42670_REG_PWR_MGMT0, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}		
+		
+		//DMP ODR 50 Hz
+		temp_buffer[0] = odr_freq;
+		if (!ICM42670_Write(sensor, ICM42670_REG_APEX_CONFIG1, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}		
+		
+		//Wait 1 milisecond
+		HAL_Delay(1);
+		
+		//Low energy amplitude threshold  // Def = 0x0A 
+		if (ICM42670_BANK1_WRITE(sensor,ICM42670_REG_APEX_CONFIG2,LowEnergyAmpTh<<4)==HAL_ERROR){
+			return HAL_ERROR;
+		}		
+
+		//Setup Low energy  threshold and Pedometer amplitude threshold  // Def = (0x08<<4)|0x05
+		//(((30 + pedo_amp_th_sel [3:0]*4 mg) * 2^25/1000) << 4 ) | Step Count Threshold
+		if (ICM42670_BANK1_WRITE(sensor,ICM42670_REG_APEX_CONFIG3,(PED_AMP_TH<<4)|PED_STEP_CNT_TH)==HAL_ERROR){
+			return HAL_ERROR;
+		}				
+		
+		//Setup pedometer Hi enable threshold , sb timer threshold and step detect threshold
+		//(step_th << 5) | (50+pdeo_sb_timer_th_sel*25) << 3 | High energy threshold //(0x02<<5) | (0x04<<2) | 0x01
+		if (ICM42670_BANK1_WRITE(sensor,ICM42670_REG_APEX_CONFIG4,(PED_STEP_DET_TH<<5) | (PED_SB_TIMER_TH<<2) | PED_HI_ENERGY_TH)==HAL_ERROR){
+			return HAL_ERROR;
+		}				
+				
+		//sensitivity_mode // Def = 0x00
+		if (ICM42670_BANK1_WRITE(sensor,ICM42670_REG_APEX_CONFIG9,PED_SENSIVITY)==HAL_ERROR){
+			return HAL_ERROR;
+		}				
+		
+		//Clear DMP SRAM for APEX operation
+		temp_buffer[0] = 0x01;
+		if (!ICM42670_Write(sensor, ICM42670_REG_APEX_CONFIG0, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}		
+		
+		//Wait 1 milisecond
+		HAL_Delay(1);		
+		
+		//Enable algorithm execution
+		temp_buffer[0] = 0x04;
+		if (!ICM42670_Write(sensor, ICM42670_REG_APEX_CONFIG0, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}
+		
+		if(Enable_interrupt)//if it's not ZERO
+		{
+			//Step Detect & Overflow interrupt INT1
+			if (ICM42670_BANK1_WRITE(sensor,ICM42670_REG_INT_SOURCE6,(0x01<<5) | (0x01<<4))==HAL_ERROR){
+				return HAL_ERROR;
+			}	
+		}
+		
+		//Enable Pedometer Algorithm
+		temp_buffer[0] = (0x01<<3)|odr_freq;
+		if (!ICM42670_Write(sensor, ICM42670_REG_APEX_CONFIG1, temp_buffer, 1)) {
+			return HAL_ERROR;
+		}		
+		
 		return HAL_OK;
 }
 
