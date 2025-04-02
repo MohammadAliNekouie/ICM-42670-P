@@ -94,21 +94,21 @@ How to use(APEX MOTION PROCESSING FUNCTIONS):
 	//2-Low Energy amplitude threshold(7:4)--  | | | | | | |  //from 30mg to 105mg(def=10)
 	//1-IMU sensor definition-------------   | | | | | | | |
 	//////////////////////////////////    |  | | | | | | | |  //////////////////////////////////
-	ICM42670_APEX_INITIALIZE_PEDOMETER(&imu,10,8,5,2,4,1,0,0);//(&imu,10,8,5,1,4,2,0);
+	icm42670_apex_init_pedometer(&imu,10,8,5,2,4,1,0,0);//(&imu,10,8,5,1,4,2,0);
 	
 	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
 	//3-Enable Interrupt Generation-------   //0 = Disable ,1 = Enable
 	//2-smd_sensivity(2:0)--------------  |  //(316<<smd_sensivity[2:0])-1
 	//1-IMU sensor definition-------    | |
 	////////////////////////////    |   | |    ///////////////////////////////////////////////////	
-	ICM42670_APEX_INITIALIZE_SMD(&imu,1,1);
+	icm42670_apex_init_smd(&imu,1,1);
 	
 	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
 	//3-Enable Interrupt Generation---------------------      //0 = Disable ,1 = Enable		
 	//2-TITL_WAIT_TIME---------------------------       |			//0 =0sec, 1 =2sec, 2 =4sec, 3=6sec
 	//1-IMU sensor definition---------           |      |
 	///////////////////////////////   |          |      |     /////////////////////////////////////	
-	ICM42670_APEX_INITIALIZE_TITL(&imu,TILT_WAIT_0SEC,1);
+	icm42670_apex_init_tilt(&imu,TILT_WAIT_0SEC,1);
 	
 	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
 	//Wake On Motion Arguments:
@@ -121,5 +121,5 @@ How to use(APEX MOTION PROCESSING FUNCTIONS):
 	//2-ACCE_WOM_X_TH(7:0)---------------------    |  |  | | | |  //1g/256 x value
 	//1-IMU sensor definition---------------   |   |  |  | | | | 
 	//////////////////////////////////      |  |   |  |  | | | |   //////////////////////////////////
-	ICM42670_APEX_INITIALIZE_WAKEONMOTION(&imu,99,99, 5, 1,0,1,4);
+	icm42670_apex_init_wake_on_motion(&imu,99,99, 5, 1,0,1,4);
 ```
