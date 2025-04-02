@@ -12,20 +12,20 @@ ICM42670 imu;
 I2C_HandleTypeDef hi2c1;
 
 //ICM42670 Init
-if(InitMPU(&imu, ICM42670_DEFAULT_ADDRESS, &hi2c1)!=HAL_OK)
+if(icm42670_init(&imu, ICM42670_DEFAULT_ADDRESS, &hi2c1)!=HAL_OK)
 {
 	LOG_RTT("MPU INIT FAILED\r\n");	
 }
 
 //Setup rate & scale
-ICM42670_StartAccel(&imu, ICM42670_CONFIG_ACCEL_4_G, ICM42670_CONFIG_RATE_100_Hz);
-ICM42670_StartGyro(&imu, ICM42670_CONFIG_GYRO_500_DPS, ICM42670_CONFIG_RATE_100_Hz);
+icm42670_start_accel(&imu, ICM42670_ACCEL_FS_2G, ICM42670_ODR_50_HZ);
+icm42670_start_gyro(&imu, ICM42670_GYRO_FS_250_DPS, ICM42670_ODR_50_HZ);	
 
 //IMU TEST LOOP
 while (1) {
-	sensorXYZ accel = ICM42670_GetAccel(&imu);
-	sensorXYZ gyro = ICM42670_GetGyro(&imu);
-	int16_t temp = ICM42670_GetTemp(&imu);
+	sensorXYZ accel = icm42670_read_accel(&imu);
+	sensorXYZ gyro = icm42670_read_gyro(&imu);
+	int16_t temp = icm42670_read_temp(&imu);
 	// Print or process sensor data
 	sprintf(buff,"AX=%d,AY=%d,AZ=%d\r\nGX=%d,GY=%d,GZ=%d\r\nTemp=%d\r\n",accel.x,accel.y,accel.z,gyro.x,gyro.y,gyro.z,temp);
 	LOG_RTT(buff);
@@ -48,34 +48,31 @@ uint16_t temperature;
 uint16_t timestamp;
 
 //ICM42670 Init
-if(InitMPU(&imu, ICM42670_DEFAULT_ADDRESS, &hi2c1)!=HAL_OK)
+if(icm42670_init(&imu, ICM42670_DEFAULT_ADDRESS, &hi2c1)!=HAL_OK)
 {
 	LOG_RTT("MPU INIT FAILED\r\n");	
 }
 
 //Init FIFO
-while(ICM42670_Initilize_FIFO(&imu,1024)!=HAL_OK)
+while(icm42670_init_fifo(&imu,1024)!=HAL_OK)
 {
 	LOG_RTT("FIFO INIT FAILED\r\n");
 }	
 
 //Setup rate & scale
-ICM42670_StartAccel(&imu, ICM42670_CONFIG_ACCEL_4_G, ICM42670_CONFIG_RATE_100_Hz);
-ICM42670_StartGyro(&imu, ICM42670_CONFIG_GYRO_500_DPS, ICM42670_CONFIG_RATE_100_Hz);
+icm42670_start_accel(&imu, ICM42670_ACCEL_FS_2G, ICM42670_ODR_50_HZ);
+icm42670_start_gyro(&imu, ICM42670_GYRO_FS_250_DPS, ICM42670_ODR_50_HZ);	
 
 //IMU FIFO TEST LOOP
 while (1) {
-if(ICM42670_Read_FIFO_Counter(&imu,&IMU_FIFO_LEN)==HAL_OK)
+if(icm42670_read_fifo_counter(&imu,&IMU_FIFO_LEN)==HAL_OK)
 {
-	if(ICM42670_Read_FIFO_Lost_Packets(&imu,&IMU_FIFO_LOST)==HAL_OK)
+	if(IMU_FIFO_LEN>16)//16Byte is minimum FIFO lenght
 	{
-		if(IMU_FIFO_LEN>16)//16Byte is minimum FIFO lenght
-		{
-			ICM42670_Read_FIFO_Data(&imu,IMU_BUFFER,16);
-			ICM42670_Decode_Packet(IMU_BUFFER,&accel,&gyro,&temperature,&timestamp);
-			sprintf(buff,"%d,%d,%d,%d,%d,%d,%d--%d\r\n",accel.x,accel.y,accel.z,gyro.x,gyro.y,gyro.z,temperature,timestamp);
-			LOG_RTT(buff);
-		}
+		icm42670_read_fifo_data(&imu,IMU_BUFFER,16);
+		icm42670_decode_packet(IMU_BUFFER,&accel,&gyro,&temperature,&timestamp);
+		sprintf(buff,"%d,%d,%d,%d,%d,%d,%d--%d\r\n",accel.x,accel.y,accel.z,gyro.x,gyro.y,gyro.z,temperature,timestamp);
+		LOG_RTT(buff);
 	}
 }
 HAL_Delay(15);
